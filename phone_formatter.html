@@ -1,0 +1,191 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Telnyx Phone Number Formater</title>
+      <style>
+          body {
+              font-family: Arial, sans-serif;
+              max-width: 900px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #e8f5e8;
+          }
+          .container {
+              background-color: white;
+              padding: 30px;
+              border-radius: 10px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 {
+              text-align: center;
+              color: #333;
+              margin-bottom: 30px;
+          }
+          .button-container {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 10px;
+              margin: 20px 0;
+              justify-content: center;
+          }
+          button {
+              padding: 12px 20px;
+              font-size: 14px;
+              font-weight: bold;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              min-width: 200px;
+          }
+          .format-dash { background-color: #4CAF50; color: white; }
+          .format-space { background-color: #2196F3; color: white; }
+          .format-range { background-color: #FFD700; color: black; }
+          .undo-btn { background-color: #FF9800; color: white; }
+          .clear-btn { background-color: #f44336; color: white; }
+          textarea {
+              width: 100%;
+              height: 200px;
+              font-family: monospace;
+              font-size: 14px;
+              padding: 15px;
+              border: 2px solid #ddd;
+              border-radius: 5px;
+              box-sizing: border-box;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="container">
+          <h1>Telnyx Phone Number Formater</h1>
+          <textarea id="phoneNumbers" placeholder="Enter phone numbers here, one per line (any format
+  with at least 10 digits)"></textarea>
+          <div class="button-container">
+              <button class="format-dash" onclick="formatDashes()">Format 888-888-8888</button>
+              <button class="format-space" onclick="formatSpaces()">Format 888 888 8888</button>
+              <button class="format-range" onclick="formatRanges()">Format 8888888888-8888</button>
+              <button class="undo-btn" onclick="undoAction()">Undo</button>
+              <button class="clear-btn" onclick="clearText()">Clear</button>
+          </div>
+      </div>
+      <script>
+          let history = [];
+          const MAX_HISTORY = 10;
+
+          function saveToHistory() {
+              const currentText = document.getElementById('phoneNumbers').value;
+              history.push(currentText);
+              if (history.length > MAX_HISTORY) {
+                  history.shift();
+              }
+          }
+
+          function getNumbers() {
+              const text = document.getElementById('phoneNumbers').value;
+              const lines = text.split('\n').filter(line => line.trim());
+              const numbers = [];
+
+              for (let line of lines) {
+                  const cleanNum = line.replace(/[^\d]/g, '');
+                  if (cleanNum.length >= 10) {
+                      const rightmost10 = cleanNum.slice(-10);
+                      numbers.push(rightmost10);
+                  }
+              }
+
+              return numbers;
+          }
+
+          function formatDashes() {
+              saveToHistory();
+              const numbers = getNumbers();
+              if (!numbers.length) { alert('No valid numbers with at least 10 digits found!'); return;
+  }
+              const ranges = findConsecutiveRanges(numbers);
+              const formatted = ranges.map(range => {
+                  if (range.includes('-')) {
+                      const [start, end] = range.split('-');
+                      const startFormatted =
+  `${start.slice(0,3)}-${start.slice(3,6)}-${start.slice(6)}`;
+                      const endLastFour = end.slice(6);
+                      return `${startFormatted}-${endLastFour}`;
+                  } else {
+                      return `${range.slice(0,3)}-${range.slice(3,6)}-${range.slice(6)}`;
+                  }
+              });
+              document.getElementById('phoneNumbers').value = formatted.join('\n');
+          }
+
+          function formatSpaces() {
+              saveToHistory();
+              const numbers = getNumbers();
+              if (!numbers.length) { alert('No valid numbers with at least 10 digits found!'); return;
+  }
+              const ranges = findConsecutiveRanges(numbers);
+              const formatted = ranges.map(range => {
+                  if (range.includes('-')) {
+                      const [start, end] = range.split('-');
+                      const area = start.slice(0,3);
+                      const exchange = start.slice(3,6);
+                      const startLast4 = start.slice(6);
+                      const endLast4 = end.slice(6);
+                      return `${area} ${exchange} ${startLast4} ${endLast4}`;
+                  } else {
+                      return `${range.slice(0,3)} ${range.slice(3,6)} ${range.slice(6)}`;
+                  }
+              });
+              document.getElementById('phoneNumbers').value = formatted.join('\n');
+          }
+
+          function formatRanges() {
+              saveToHistory();
+              const numbers = getNumbers();
+              if (!numbers.length) { alert('No valid numbers with at least 10 digits found!'); return;
+  }
+              const ranges = findConsecutiveRanges(numbers);
+              const formatted = ranges.map(range => {
+                  if (range.includes('-')) {
+                      const [start, end] = range.split('-');
+                      return `${start}-${end.slice(6)}`;
+                  }
+                  return range;
+              });
+              document.getElementById('phoneNumbers').value = formatted.join('\n');
+          }
+
+          function undoAction() {
+              if (history.length === 0) {
+                  alert('No actions to undo!');
+                  return;
+              }
+              const previousState = history.pop();
+              document.getElementById('phoneNumbers').value = previousState;
+          }
+
+          function findConsecutiveRanges(numbers) {
+              if (!numbers.length) return [];
+              const numInts = numbers.map(num => parseInt(num)).sort((a, b) => a - b);
+              const ranges = [];
+              let start = numInts[0], end = numInts[0];
+              for (let i = 1; i < numInts.length; i++) {
+                  if (numInts[i] === end + 1) {
+                      end = numInts[i];
+                  } else {
+                      ranges.push(start === end ? start.toString().padStart(10, '0') :
+  `${start.toString().padStart(10, '0')}-${end.toString().padStart(10, '0')}`);
+                      start = end = numInts[i];
+                  }
+              }
+              ranges.push(start === end ? start.toString().padStart(10, '0') :
+  `${start.toString().padStart(10, '0')}-${end.toString().padStart(10, '0')}`);
+              return ranges;
+          }
+
+          function clearText() {
+              saveToHistory();
+              document.getElementById('phoneNumbers').value = '';
+          }
+      </script>
+  </body>
+  </html>
